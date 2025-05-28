@@ -241,6 +241,40 @@ impl<T> Array2D<T> {
         })
     }
 
+        /// Creates a new [`Array2D`] from a vector of rows, each of which is a
+    /// [`Vec`] of elements.
+    ///
+    /// Returns an error if the rows are not all the same size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use array2d::{Array2D, Error};
+    /// # fn main() -> Result<(), Error> {
+    /// let rows = vec![vec![1, 2, 3], vec![4, 5, 6]];
+    /// let array = Array2D::from_rows(&rows)?;
+    /// assert_eq!(array[(1, 2)], 6);
+    /// assert_eq!(array.as_rows(), rows);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`Array2D`]: struct.Array2D.html
+    /// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+    pub fn from_rows_take(elements: Vec<Vec<T>>) -> Result<Self, Error>
+    {
+        let row_len = elements.first().map(Vec::len).unwrap_or(0);
+        if !elements.iter().all(|row| row.len() == row_len) {
+            return Err(Error::DimensionMismatch);
+        }
+        let l = elements.len();
+        Ok(Array2D {
+            array: flatten_take(elements),
+            num_rows: l,
+            num_columns: row_len,
+        })
+    }
+
     /// Creates a new [`Array2D`] from a slice of columns, each of which
     /// contains a [`Vec`] of elements.
     ///
@@ -1453,6 +1487,10 @@ impl<T> IndexMut<(usize, usize)> for Array2D<T> {
 
 fn flatten<T: Clone>(nested: &[Vec<T>]) -> Vec<T> {
     nested.iter().flat_map(|row| row.clone()).collect()
+}
+
+fn flatten_take<T>(nested: Vec<Vec<T>>) -> Vec<T> {
+    nested.into_iter().flat_map(|row| row.into_iter()).collect()
 }
 
 fn indices_row_major(
